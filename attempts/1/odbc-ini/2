@@ -1,0 +1,10 @@
+[test]
+Driver      = /usr/local/lib/libmyodbc5a.so
+Description = MySQL test database
+Trace       = Off
+TraceFile   = stderr
+Driver      = mysql
+SERVER      = 127.0.0.1
+PORT        = 3306
+DATABASE    = freekbs2_dev
+PASSWORD    = <PASSWORD>

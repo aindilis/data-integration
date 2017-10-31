@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb#">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
+
+<meta name="description" content="This is a quick guide for getting SWI-Prolog to connect MySQL database through ODBC using unixODBC.">
+
+<title>Raivo Laanemets - Freelancer - SWI-Prolog and MySQL through ODBC using unixODBC</title>
+<!--[if lt IE 9]><script src="/html5-els.js"></script><![endif]-->
+<link rel="alternate" href="/feed/atom" type="application/atom+xml">
+<link rel="stylesheet" href="/t-1493861633/style.css">
+<link rel="stylesheet" href="/t-1493861633/print.css" media="print">
+<link rel="stylesheet" href="/t-1493861633/highlight/highlight.css">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Raivo Laanemets - Freelancer - SWI-Prolog and MySQL through ODBC using unixODBC">
+<meta property="og:image" content="https://rlaanemets.com/t-1493861633/images/rla.png">
+<meta property="fb:profile_id" content="1235915128">
+</head>
+
+<body>
+<div class="container">
+<header>
+<h1>Raivo Laanemets. Full-stack freelancer.</h1>
+<nav>
+<a class="menu-button" href="/post/show/raivo">About</a>
+<a class="menu-button" href="/">Blog</a>
+<a class="menu-button" href="/now">Now</a>
+<a class="menu-button" href="/projects/all">Projects</a>
+<a class="menu-button" href="/post/show/services">Services</a>
+<a class="menu-button" href="/post/show/cv">CV</a>
+<a class="menu-button" href="/post/show/contacts">Contact</a>
+<a class="menu-button" href="/post/show/hiring">Hiring Me</a>
+<a class="menu-button" href="/search">Search</a>
+</nav>
+</header>
+
+<main>
+<article itemscope itemtype="http://schema.org/Article" class="post-page">
+<h2 itemprop="name">SWI-Prolog and MySQL through ODBC using unixODBC</h2>
+<div class="meta">
+
+<div class="date">
+On <time itemprop="datePublished" datetime="2015-11-27">
+2015-11-27</time></div>
+
+<div class="byline">By
+<a itemprop="author" class="byline-author" href="http://rlaanemets.com">Raivo Laanemets</a>
+</div>
+
+<div class="tags">
+
+<a href="/tag/show/prolog" class="tag">prolog</a>
+
+<a href="/tag/show/mysql" class="tag">mysql</a>
+
+<a href="/tag/show/odbc" class="tag">odbc</a>
+
+</div>
+
+</div>
+<hr>
+<div itemprop="articleBody" class="body">
+
+
+<p>
+Some time ago I needed to connect a MySQL database from SWI-Prolog to process
+the data inside it. I had previously tried to get this working through <a href="https://en.wikipedia.org/wiki/Open_Database_Connectivity">ODBC</a>
+but without much success. I gave it a last try and was able to get it working.</p>
+
+<h3>ODBC</h3>
+
+<p>
+ODBC is an old standard (from early 1990's) developed by Microsoft to make it easier
+to query SQL databases. It also has implementation on Linux called <a href="http://www.unixodbc.org/">unixODBC</a>.
+SWI-Prolog contains an ODBC <a href="http://www.swi-prolog.org/pldoc/man?section=odbc">interface</a> that can use unixODBC but setting
+up the proper configuration can be a bit confusing as there are so many
+layers to configure. The context diagram for ODBC looks like this:</p><img src="/swi-prolog-and-mysql-through-odbc/odbc.png"
+  alt="ODBC context diagram">
+
+<p>
+Unlike with direct MySQL interfaces in other languages, you need to specify the
+configuration parameters in multiple files scattered throughout the system. This
+was the step where I got stuck the last time.</p>
+
+<p>
+ODBC is an old technology but matured and stable and works well (once you manage to
+configure it). The drivers are provided and maintained for lots of databases.</p>
+
+<h3>Configuration files</h3>
+
+<p>
+The actual location of configuration files can be checked after unixODBC is installed
+(either from a system package or by compiling from source). This can be done through the
+command <code>odbcinst -j</code>. This will print something like this:</p>
+
+<pre>
+<code>unixODBC 2.3.4
+DRIVERS............: /usr/local/etc/odbcinst.ini
+SYSTEM DATA SOURCES: /usr/local/etc/odbc.ini
+FILE DATA SOURCES..: /usr/local/etc/ODBCDataSources
+USER DATA SOURCES..: /home/raivo/.odbc.ini
+SQLULEN Size.......: 8
+SQLLEN Size........: 8
+SQLSETPOSIROW Size.: 8</code></pre>
+
+<p>
+The database drivers will be configured in <code>/usr/local/etc/odbcinst.ini</code> by this
+output. Each database driver (MySQL, SQLite, PostgreSQL, anything that has ODBC driver)
+can be added here. The file will take the location for the loadable module and
+some driver-specific options.</p>
+
+<h3>MySQL ODBC driver</h3>
+
+<p>
+The actual driver has to be installed before using it. I downloaded a compiled
+binary driver for my machine architecture directly from the MySQL <a href="https://dev.mysql.com/downloads/connector/odbc/">site</a>.
+It is possible to compile it yourself but you need a proper version of MySQL
+client libraries and the boost library installed.</p>
+
+<p>
+The binary package contains the driver file <code>lib/libmyodbc5a.so</code>. This can be
+installed in a straightforward way by copying it to the system and adding the
+ODBC driver configuration entry manually as the root user:</p>
+
+<pre>
+<code>cp lib/libmyodbc5a.so /usr/local/lib/
+chown root:root /usr/local/lib/libmyodbc5a.so</code></pre>
+
+<p>
+and into <code>/usr/local/etc/odbcinst.ini</code>:</p>
+
+<pre>
+<code>[mysql]
+Driver=/usr/local/lib/libmyodbc5a.so</code></pre>
+
+<p>
+Multiple driver sections can be added into the file.</p>
+
+<h3>Connections</h3>
+
+<p>
+After the driver is configured, a connection using the driver can be added.
+I put my connection into the user-local file <code>~/.odbc.ini</code>. It is possible
+to add system-wide connections too.</p>
+
+<p>
+The file contains the database driver name with some additional parameters
+and driver-specific options such as the server hostname, port and the MySQL
+database name:</p>
+
+<pre>
+<code>[test]
+Description = MySQL test database
+Trace       = Off
+TraceFile   = stderr
+Driver      = mysql
+SERVER      = localhost
+PORT        = 3306
+DATABASE    = my_database</code></pre>
+
+<p>
+Multiple sections for multiple connections can be added to the file. Note that
+the connection username and password does not have to be set here. While they can
+be added here, they can also be set in SWI while activating the connection.</p>
+
+<h3>Connecting and querying</h3>
+
+<p>
+Connecting and querying is easy once everything is configured:</p>
+
+<pre>
+<code data-language="prolog">use_module(library(odbc)).
+
+odbc_connect(test, C, [user(your_user), password(your_password)]),
+odbc_query(C, 'SELECT * FROM my_table', Rows).</code></pre>
+
+<p>
+Further information on prepared statements and other useful features supported by
+SWI-Prolog's ODBC interface can be found in its <a href="http://www.swi-prolog.org/pldoc/man?section=odbc">docs</a>. The similar
+connectivity can be set up for SWI in Windows too, except the drivers and connections
+are configured using the Windows own graphical tools.</p>
+</div>
+
+
+<div class="share">
+<hr>
+<h3>Share</h3>
+<p>
+Share the article link<br>
+<code id="url">https://rlaanemets.com/post/show/swi-prolog-and-mysql-through-odbc</code><br>
+or directly to: <a href="https://plus.google.com/share?url=https%3A//rlaanemets.com/post/show/swi-prolog-and-mysql-through-odbc"
+aria-label="Share to Google Plus" title="Share to Google Plus">Google+</a>,
+<a href="https://www.facebook.com/sharer/sharer.php?u=https%3A//rlaanemets.com/post/show/swi-prolog-and-mysql-through-odbc"
+aria-label="Share to Facebook" title="Share to Facebook">Facebook</a>,
+<a href="http://www.linkedin.com/shareArticle?mini=true&amp;url=https%3A//rlaanemets.com/post/show/swi-prolog-and-mysql-through-odbc"
+aria-label="Share to LinkedIn" title="Share to LinkedIn">LinkedIn</a>,
+<a href="https://twitter.com/intent/tweet?text=SWI-Prolog%20and%20MySQL%20through%20ODBC%20using%20unixODBC&amp;via=RaivoL&amp;url=https%3A//rlaanemets.com/post/show/swi-prolog-and-mysql-through-odbc"
+aria-label="Share to Twitter" title="Share to Twitter">Twitter</a>
+<script>
+var url = document.getElementById('url');
+url.onclick = function() {
+if (window.getSelection) {
+var range = document.createRange();
+range.selectNode(url);
+window.getSelection().addRange(range);
+} else if (document.selection) {
+var range = document.body.createTextRange();
+range.moveToElementText(url);
+range.select();
+}
+}
+</script>
+</p>
+</div>
+
+<div class="related-posts">
+<hr>
+<h3>Related articles</h3>
+<ul>
+
+<li><a href="/post/show/about-swi-prolog-packs">About SWI-Prolog packs</a></li>
+
+<li><a href="/post/show/compile-swi-prolog-with-uuid-support">Compile SWI-Prolog with UUID support</a></li>
+
+<li><a href="/post/show/beware-of-swi-prolog-packs">Beware of SWI-Prolog packs</a></li>
+
+</ul>
+</div>
+
+<div class="last-posts">
+<hr>
+<h3>Last articles</h3>
+<ul>
+
+<li><a href="/post/show/stack-review-2017">Stack Review 2017</a></li>
+
+<li><a href="/post/show/remote-worker-award">Remote Worker award</a></li>
+
+<li><a href="/post/show/what-react-does-not-solve">What React does not solve</a></li>
+
+</ul>
+</div>
+
+
+<hr>
+<h3>Comments</h3>
+
+<p>No comments have been added so far.</p>
+
+<div class="comments">
+
+</div>
+<noscript>Commenting requires JavaScript support.</noscript>
+<form id="comment-form" class="form">
+<input type="hidden" name="question" value="0">
+<input type="hidden" name="post_id" value="5755b732-bdfe-4d6a-a191-00e48ad0b29e">
+<div class="form-row">
+<label for="comment-author"
+class="form-label">Author</label>
+<input type="text" name="author" id="comment-author"
+class="form-control" placeholder="Your name">
+</div>
+<div class="form-row">
+<label for="comment-email"
+class="form-label">Email (may be left blank)</label>
+<div>
+Email is not displayed anywhere.
+</div>
+<input type="text" name="email" id="comment-email"
+class="form-control" placeholder="Email for notifications">
+</div>
+<div class="form-row">
+<label for="comment-site"
+class="form-label">Site (may be left blank)</label>
+<input type="text" name="site" id="comment-site"
+class="form-control" placeholder="Homepage aadress">
+</div>
+<div class="form-row">
+<label for="comment-answer"
+class="form-label">Content</label>
+<div>
+URLs (<strong>max 3</strong>) starting
+with http:// or https:// can be used. Use @Name
+to mention someone.
+</div>
+<textarea name="content" id="comment-answer"
+class="form-control" rows="10" placeholder="Comment content"></textarea>
+</div>
+<div class="form-row"
+id="comment-question">&nbsp;</div>
+<div class="form-row">
+<label for="comment-answer"
+class="form-label">Answer</label>
+<input type="text" name="answer" id="comment-answer"
+class="form-control" placeholder="Answer to captcha question">
+</div>
+<div class="form-row">
+<label>
+<input type="checkbox" name="notify" checked>
+Receive notifications (if email is set)
+</label>
+</div>
+<div class="form-row"
+id="comment-message"></div>
+<div class="form-row">
+<button class="button" type="submit">Post</submit>
+</div>
+</form>
+<script src="/t-1493861633/comment.js"></script>
+<script>
+comment({ form: '#comment-form', question: '#comment-question',
+message: '#comment-message' });
+</script>
+
+
+</article>
+</main>
+</div>
+<div class="container">
+<footer>
+<div class="footer-row">
+<div class="footer-col">
+<ul>
+<li><a href="/post/show/contacts">Contact</a></li>
+<li><a href="https://github.com/rla/">GitHub</a></li>
+<li><a href="https://twitter.com/RaivoL">Twitter</a></li>
+<li><a href="https://ee.linkedin.com/in/raivo-laanemets-7a520312">LinkedIn</a></li>
+</ul>
+</div>
+<div class="footer-col">
+<ul>
+<li><a href="/post/show/raivo">About</a></li>
+<li><a href="/post/show/services">Services</a></li>
+<li><a href="/projects/all">Projects</a></li>
+<li><a href="/post/show/hiring">Hiring Me</a></li>
+</ul>
+</div>
+<div class="footer-col">
+<ul>
+<li><a href="/post/show/cv">CV</a></li>
+<li><a href="/now">Now</a></li>
+<li><a href="http://gallery.rlaanemets.com/">Gallery</a></li>
+<li><a href="/search">Search</a></li>
+</ul>
+</div>
+<div class="footer-col">
+<ul>
+<li><a href="/post/all">All posts</a></li>
+<li><a href="/tag/all">All tags</a></li>
+<li><a href="/feed/atom">Atom feed</a></li>
+</ul>
+</div>
+</div>
+<p>
+<small>
+(c) 2012-2016 Raivo Laanemets, blog running on
+<a href="http://blog-core.net">Blog-Core</a>, social icons from
+<a href="http://simpleicons.org/">http://simpleicons.org/</a>
+</small>
+</p>
+</footer>
+<script>
+(function() {
+if (document.querySelectorAll) {
+var hostname = window.location.hostname;
+var check = document.querySelector('nav > a').hostname;
+if (typeof hostname === 'string' && hostname === check) {
+var links = document.querySelectorAll('a');
+for (var i = 0; i < links.length; i++) {
+var link = links[i];
+if (typeof link.hostname === 'string' && link.hostname !== hostname) {
+link.target = '_blank';
+}
+}
+}
+}
+})();
+</script>
+<script>window.humanSiteId = 'rlaanemets.com';</script>
+<script src="/t-1493861633/human.min.js"></script>
+<script src="https://cdn.ravenjs.com/3.9.1/raven.min.js"></script>
+<script>
+Raven.config('https://3218dd06802049e5a216b255c9e802fc@sentry.io/124738').install();
+</script>
+</div>
+
+<script src="/t-1493861633/highlight/highlight.pack.js"></script>
+<script>
+if (document.querySelectorAll) {
+var snippets = document.querySelectorAll('pre code');
+for (var i = 0; i < snippets.length; i++) {
+var snippet = snippets.item(i);
+var language = snippet.getAttribute('data-language');
+if (language) {
+snippet.className = language;
+hljs.highlightBlock(snippet);
+}
+}
+}
+</script>
+
+</body>
+</html>

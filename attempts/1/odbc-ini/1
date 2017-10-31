@@ -1,0 +1,24 @@
+[ODBC Data Sources]
+odbcname     = MyODBC 3.51 Driver DSN
+
+# [prologtest]
+# Driver       = /usr/lib/odbc/libmyodbc.so
+# Description  = MyODBC 3.51 Driver DSN
+# SERVER       = my.database.server.com
+# PORT         =
+# USER         = USER
+# Password     = XXXXXX
+# Database     = DBNAME
+# OPTION       = 3
+# SOCKET       =
+
+[freekbs2_odbc]
+Driver       = /usr/lib/x86_64-linux-gnu/odbc/libmyodbc.so
+Description  = MyODBC 3.51 Driver DSN
+SERVER       = localhost
+PORT         =
+USER         = root
+Password     = <PASSWORD>
+Database     = freekbs2
+OPTION       = 3
+SOCKET       =
